@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<!-- novalidate baraye off kardan etebarsanji mororgar ke age off nakoni hame mavared form elzami mishe -->
+    <form action="" method="post" novalidate>
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="login">
+    </form>
+{% endblock content %}
