@@ -27,7 +27,8 @@ class PostDetailView(View):
         post = get_object_or_404(Post, pk=post_id, slug=post_slug)
         #aslesh bayad in bashe vali mikham befahme age on post vojod nadasht bere safe error 404
         #post = Post.objects.get(pk=post_id, slug=post_slug)
-        return render(request, 'home/detail.html', {'post': post})
+        comments = post.pcomments.filter(is_reply=False)
+        return render(request, 'home/detail.html', {'post': post, 'comments': comments})
 
 
 class PostDeleteView(LoginRequiredMixin, View):

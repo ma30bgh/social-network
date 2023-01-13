@@ -8,6 +8,7 @@ from .forms import UserRegistrationForm, UserLoginForm
 from django.contrib.auth import views as auth_views
 #as auth_views gozashtim ke esm hashon ghati nashe
 from  django.urls import reverse_lazy
+from  .models import Relation
 
 
 class RegisterView(View):
@@ -40,6 +41,10 @@ class LoginView(View):
     form_class = UserLoginForm
     template_name = 'account/login.html'
 
+    def setup(self, request, *args, **kwargs):   #baraye inke vaghti login mikone bere be hamon safe k darkhast login dade
+        self.next = request.GET.get('next')
+        return super().setup(request, *args, **kwargs)
+
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return redirect('home:home')
@@ -57,6 +62,8 @@ class LoginView(View):
             if user is not None:
                 login(request, user)
                 messages.success(request, 'you logged in successfully', 'success')
+                if self.next:
+                    return redirect(self.next)  #setup ro bala neveshtim barash
                 return redirect('home:home')
             messages.error(request, 'Error', 'warning')
         return render(request, self.template_name, {'form': form})
@@ -65,19 +72,23 @@ class LoginView(View):
 class LogoutView(LoginRequiredMixin, View):
     def get(self, request):
         logout(request)
-        messages.success(request, 'you logout successfully', 'success')
+        messages.success(request, 'you are logout successfully', 'success')
         return redirect('home:home')
 
 
 class UserProfileView(LoginRequiredMixin, View):
     def get(self, request, user_id):
+        is_following = False
         user = get_object_or_404(User, pk=user_id)
         #user = User.objects.get(pk=user_id)
         posts = user.posts.all()  #related_name='posts' --> models
         #posts = Post.objects.filter(user=user)
         # agar bekhaym baraye filter ham hamin karo konim az in ravash estefade mikonim
         #posts = get_list_or_404(Post, user = user)
-        return render(request, 'account/profile.html', {'user': user, 'posts': posts})
+        relation = Relation.objects.filter(from_user=request.user, to_user=user)
+        if relation.exists():
+            is_following = True
+        return render(request, 'account/profile.html', {'user': user, 'posts': posts, 'is_following': is_following})
 
 
 class UserPasswordResetView(auth_views.PasswordResetView):
@@ -97,3 +108,27 @@ class UserPasswordConfirmView (auth_views.PasswordResetConfirmView):
 
 class UserPasswordResetCompleteView (auth_views.PasswordResetCompleteView):
     template_name = 'account/password_reset_complete.html'
+
+class UserFollowView(LoginRequiredMixin, View):
+    def get(self, request, user_id):
+        user = User.objects.get(id=user_id)
+        relation = Relation.objects.filter(from_user=request.user, to_user= user)
+        if relation.exists():
+            messages.error(request, 'you are already following this user', 'danger')
+        else:
+            #Relation.objects.create(from_user=request.user, to_user= user)  --> ravash1 --> create dar khodesh save dare
+            Relation(from_user=request.user, to_user= user).save()  #ravesh2
+            messages.success(request, 'you followed this user', 'success')
+        return redirect('account:user_profile', user.id)
+
+
+class UserUnfollowView(LoginRequiredMixin, View):
+    def get(self, request, user_id):
+        user = User.objects.get(id=user_id)
+        relation = Relation.objects.filter(from_user=request.user, to_user= user)
+        if relation.exists():
+            relation.delete()
+            messages.success(request, 'you unfollowed this user', 'success')
+        else:
+            messages.error(request, 'you are not following this user', 'danger')
+        return redirect('account:user_profile', user.id)

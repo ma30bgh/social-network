@@ -1,8 +1,10 @@
 from django.contrib import admin
-from .models import Post
+from .models import Post , Comment
 
+
+@admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    #kodom fild haro neshon bede
+    #kodom fild haro to panel admin neshon bede
     list_display = ('user', 'slug', 'updated')
     #search bara kodom fild bash.
     #inja to in tuple mitoni chanta fild bezari
@@ -13,6 +15,12 @@ class PostAdmin(admin.ModelAdmin):
     #slug ro miyad bar hasb body por mikone(otomatic)
     raw_id_fields = ('user',)
     #fild user ro ba id por mikone
-admin.site.register(Post,PostAdmin)
+#admin.site.register(Post,PostAdmin)
 
-# Register your models here.
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    list_display = ('user', 'post', 'created', 'is_reply')
+    raw_id_fields = ('user','post', 'reply')
+
+
